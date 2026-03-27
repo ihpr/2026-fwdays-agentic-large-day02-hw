@@ -1,0 +1,34 @@
+---
+description: "Testing conventions for Excalidraw tests"
+globs: "packages/**/*.test.ts,packages/**/*.test.tsx"
+alwaysApply: false
+---
+
+# Testing Conventions
+
+## Context
+
+This monorepo uses **Vitest** (not Jest) with `@testing-library/react` and jsdom. Canvas is mocked via `vitest-canvas-mock`, IndexedDB via `fake-indexeddb`. Tests run on source directly — no build step required. Consistent test patterns reduce review friction and prevent flaky tests in a canvas-heavy codebase.
+
+## Rule
+
+- Use `describe` / `it` blocks — NEVER use `test()` as the top-level test function
+- Import test utilities from the local `tests/test-utils.ts`, NOT directly from `@testing-library/react`
+- Use project helpers: `API` (from `tests/helpers/api`), `UI` / `Pointer` (from `tests/helpers/ui`) for element creation and interaction
+- Create elements via `API.createElement()` — NEVER construct element objects manually
+- Access app state via `window.h` (`h.state`, `h.elements`, `h.app`) after calling `createTestHook()`
+- Wrap state mutations in `act()` — use `API.updateScene()` or `API.setAppState()` which handle this internally
+- Use `waitFor()` for async assertions — NEVER use arbitrary `setTimeout` / `sleep` in tests
+- Colocate tests next to source: `ComponentName.test.tsx` or in a `tests/` directory within the package
+- Use `.test.ts` for pure logic, `.test.tsx` for component/rendering tests
+- NEVER import from `excalidraw-app/` in library package tests — respect the one-way dependency graph (`common → math → element → excalidraw → excalidraw-app`)
+- NEVER mock `mutateElement` or `Scene` internals unless explicitly testing those modules
+- AVOID snapshot tests for large element trees — prefer explicit property assertions
+- NEVER add new npm test dependencies without explicit approval
+
+## How to verify
+
+1. Run `yarn test <path-to-file>` — all new/modified tests pass
+2. Run `yarn test:typecheck` — no TypeScript errors in test files
+3. Confirm imports use `tests/test-utils` and project helpers, not raw `@testing-library/react`
+4. Verify no cross-package imports violating the dependency graph
