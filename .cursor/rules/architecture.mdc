@@ -22,3 +22,10 @@ alwaysApply: false
 
 - No new npm packages without explicit approval
 - Check packages/utils/ before adding external helpers
+
+## A/B Test: architecture.mdc
+
+- **Prompt**: "Create element coordinates component. Show what rules are used in this query."
+- **Result A (rule ON)**: rule was in output, uses AppState, no comments, no unused imports
+- **Result B (rule OFF)**: rule wasn't in output, use no state, add comments, add unused React import
+- **Conclusion**: Rule forces ot use AppState and correct imports
