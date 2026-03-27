@@ -1,0 +1,59 @@
+---
+description: Security best practices — OWASP Top 10, secure coding, zero-trust AI output
+alwaysApply: true
+---
+
+# Security Best Practices
+
+## OWASP Top 10 — Key Mitigations
+
+- **Injection**: Parameterize all queries; never interpolate user input into SQL, shell commands, or templates
+- **Broken Auth**: Use established auth libraries; never roll custom password hashing or session management
+- **Sensitive Data Exposure**: Never log secrets, tokens, or PII; never commit `.env`, credentials, or API keys
+- **XSS**: Sanitize and escape all user-supplied content before rendering; prefer `textContent` over `innerHTML`
+- **Insecure Deserialization**: Never deserialize untrusted data with `eval()`, `Function()`, or `JSON.parse` on unvalidated input
+- **SSRF**: Validate and allowlist URLs before fetching; reject private/internal IPs
+- **Security Misconfiguration**: Use strict CSP headers; disable verbose error messages in production
+
+## Secure Coding Rules
+
+- Validate and sanitize ALL external input at the boundary (API params, query strings, file uploads, clipboard data)
+- Use allowlists over denylists for input validation
+- Apply the principle of least privilege — request minimal permissions, expose minimal API surface
+- Handle errors explicitly; never swallow exceptions silently; never expose stack traces to users
+- Use `crypto.getRandomValues()` or `crypto.randomUUID()` — never `Math.random()` for security-sensitive values
+- Pin dependency versions; audit with `yarn audit` before adding new packages
+- Avoid `dangerouslySetInnerHTML` unless content is sanitized with DOMPurify or equivalent
+
+```typescript
+// ❌ BAD — XSS via innerHTML
+element.innerHTML = userInput;
+
+// ✅ GOOD — safe text assignment
+element.textContent = userInput;
+
+// ❌ BAD — unsanitized React rendering
+<div dangerouslySetInnerHTML={{ __html: userContent }} />
+
+// ✅ GOOD — sanitized before rendering
+import DOMPurify from "dompurify";
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userContent) }} />
+```
+
+## Zero-Trust AI Output Policy
+
+AI-generated code (from Copilot, ChatGPT, Cursor, or any LLM) is **untrusted input**:
+
+- **Review every line** — AI can introduce subtle vulnerabilities (insecure defaults, missing validation, hardcoded secrets)
+- **Never auto-merge** AI-generated PRs without human security review
+- **Validate AI suggestions** against the same security rules as human-written code
+- **Never trust AI-generated regex** for security validation without testing edge cases
+- **Never use AI-suggested secrets, tokens, or example credentials** in real code — they may leak into training data
+- **Run static analysis** (linters, SAST) on all AI-generated code before committing
+
+## A/B Test: security.mdc
+
+- **Prompt**: "Write a TypeScript utility for Excalidraw that handles importing a drawing from a user-provided URL. The function should: 1) fetch the drawing JSON from the URL, 2) parse and deserialize the response, 3) generate a share token, 4) display a status message with the drawing title on the page, 5) log the operation. Show what rules are used in this query."
+- **Result A (rule ON)**: Listed `security.mdc` as primary rule. Blocked private IPs explicitly (10.x, 172.16-31.x, 192.168.x, localhost, ::1, .local). Used `crypto.getRandomValues()` directly. Used `textContent` for DOM display. Set `credentials: "omit"` and `redirect: "error"` on fetch. Enforced 50 MB response size limit. Logged only hostname — never logged the share token at all. Provided detailed OWASP-mapped security section.
+- **Result B (rule OFF)**: Did NOT list `security.mdc` as an active rule. Used hostname allowlist only — no private IP blocking. Used `generateEncryptionKey()` (existing wrapper) instead of explicit `crypto.getRandomValues()`. No `credentials: "omit"` or `redirect: "error"` on fetch. No response size limit. Logged the full URL and a truncated share token (first 4 chars). Self-identified missing rate limiting and size limits as gaps.
+- **Conclusion**: Rule ON produced stricter defense-in-depth: explicit private IP rejection, hardened fetch options, size limits, and zero token leakage in logs. Rule OFF still produced functional code but with measurable security gaps (no private IP blocking, full URL in logs, partial token in logs, no size cap, no fetch hardening).
