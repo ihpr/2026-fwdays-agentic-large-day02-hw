@@ -1,0 +1,50 @@
+---
+description: Guidelines for maintaining changelogs based on Keep a Changelog format
+globs: "**/CHANGELOG.md"
+alwaysApply: false
+---
+
+# Keep a Changelog Standards
+
+Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) + [SemVer](https://semver.org/).
+
+## Change Types
+
+- **Added** — new features, endpoints, config, docs
+- **Changed** — existing functionality, non-breaking API changes, perf
+- **Deprecated** — features planned for removal
+- **Removed** — deleted features, endpoints, dependencies
+- **Fixed** — bug fixes, crash fixes, perf issues
+- **Security** — vulnerability patches, dependency updates
+
+## Structure
+
+```markdown
+## [Unreleased]
+
+### Added
+- Multi-language support ([#123](https://github.com/user/repo/pull/123))
+
+### Fixed
+- Memory leak in background worker ([#128](https://github.com/user/repo/issues/128))
+
+[Unreleased]: https://github.com/user/repo/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/user/repo/compare/v1.1.0...v1.2.0
+```
+
+## Entry Quality
+
+Good — specific, user-facing, with PR/issue link:
+`- Race condition in payment processing causing duplicate charges ([#128])`
+
+Bad — vague, no context:
+`- Fixed bug`
+
+## Rules
+
+- Update with every PR
+- Write from user's perspective
+- Include issue/PR numbers
+- ISO dates (YYYY-MM-DD)
+- Unreleased section at top
+- Skip internal-only changes
