@@ -6,55 +6,50 @@ alwaysApply: false
 
 # Security Best Practices
 
-## OWASP Top 10 — Key Mitigations
+## OWASP Top 10
 
-- **Injection**: Parameterize all queries; never interpolate user input into SQL, shell commands, or templates
-- **Broken Auth**: Use established auth libraries; never roll custom password hashing or session management
-- **Sensitive Data Exposure**: Never log secrets, tokens, or PII; never commit `.env`, credentials, or API keys
-- **XSS**: Sanitize and escape all user-supplied content before rendering; prefer `textContent` over `innerHTML`
-- **Insecure Deserialization**: Never deserialize untrusted data with `eval()`, `Function()`, or `JSON.parse` on unvalidated input
-- **SSRF**: Validate and allowlist URLs before fetching; reject private/internal IPs
-- **Security Misconfiguration**: Use strict CSP headers; disable verbose error messages in production
+- **Injection**: Parameterize all queries; never interpolate user input into SQL/shell/templates
+- **Broken Auth**: Use established auth libraries; never roll custom hashing or session management
+- **Sensitive Data Exposure**: Never log secrets, tokens, or PII; never commit `.env` or API keys
+- **XSS**: Sanitize all user content before rendering; prefer `textContent` over `innerHTML`
+- **Insecure Deserialization**: Never use `eval()`, `Function()`, or `JSON.parse` on unvalidated input
+- **SSRF**: Allowlist URLs before fetching; reject private/internal IPs
+- **Security Misconfiguration**: Strict CSP headers; no verbose errors in production
 
-## Secure Coding Rules
+## Secure Coding
 
-- Validate and sanitize ALL external input at the boundary (API params, query strings, file uploads, clipboard data)
-- Use allowlists over denylists for input validation
-- Apply the principle of least privilege — request minimal permissions, expose minimal API surface
-- Handle errors explicitly; never swallow exceptions silently; never expose stack traces to users
-- Use `crypto.getRandomValues()` or `crypto.randomUUID()` — never `Math.random()` for security-sensitive values
-- Pin dependency versions; audit with `yarn audit` before adding new packages
-- Avoid `dangerouslySetInnerHTML` unless content is sanitized with DOMPurify or equivalent
+- Validate/sanitize ALL external input at the boundary (API params, query strings, uploads, clipboard)
+- Use allowlists over denylists
+- Least privilege — minimal permissions, minimal API surface
+- Handle errors explicitly; never swallow exceptions; never expose stack traces to users
+- Use `crypto.getRandomValues()` or `crypto.randomUUID()` — never `Math.random()` for security values
+- Pin dependency versions; run `yarn audit` before adding packages
+- Avoid `dangerouslySetInnerHTML` unless sanitized with DOMPurify
 
 ```typescript
-// ❌ BAD — XSS via innerHTML
+// ❌ XSS
 element.innerHTML = userInput;
-
-// ✅ GOOD — safe text assignment
+// ✅ Safe
 element.textContent = userInput;
 
-// ❌ BAD — unsanitized React rendering
+// ❌ Unsanitized React
 <div dangerouslySetInnerHTML={{ __html: userContent }} />
-
-// ✅ GOOD — sanitized before rendering
-import DOMPurify from "dompurify";
+// ✅ Sanitized
 <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userContent) }} />
 ```
 
-## Zero-Trust AI Output Policy
+## Zero-Trust AI Output
 
-AI-generated code (from Copilot, ChatGPT, Cursor, or any LLM) is **untrusted input**:
+All AI-generated code is **untrusted input**:
 
-- **Review every line** — AI can introduce subtle vulnerabilities (insecure defaults, missing validation, hardcoded secrets)
-- **Never auto-merge** AI-generated PRs without human security review
-- **Validate AI suggestions** against the same security rules as human-written code
-- **Never trust AI-generated regex** for security validation without testing edge cases
-- **Never use AI-suggested secrets, tokens, or example credentials** in real code — they may leak into training data
-- **Run static analysis** (linters, SAST) on all AI-generated code before committing
+- Review every line — AI introduces subtle vulnerabilities (insecure defaults, missing validation, hardcoded secrets)
+- Never auto-merge AI PRs without human security review
+- Never trust AI-generated regex for security validation without testing edge cases
+- Never use AI-suggested secrets or credentials in real code
+- Run SAST/linters on all AI-generated code before committing
 
-## A/B Test: security.mdc
+## A/B Test Results
 
-- **Prompt**: "Write a TypeScript utility for Excalidraw that handles importing a drawing from a user-provided URL. The function should: 1) fetch the drawing JSON from the URL, 2) parse and deserialize the response, 3) generate a share token, 4) display a status message with the drawing title on the page, 5) log the operation. Show what rules are used in this query."
-- **Result A (rule ON, glob-scoped)**: `security.mdc` listed as primary rule. Full SSRF blocking (regex patterns for all private IP ranges + localhost + .local + 0.0.0.0). `credentials: "omit"` and `redirect: "error"` on fetch. Explicit 50 MB size cap on both `Content-Length` header and blob. `textContent` used in raw DOM banner (never innerHTML). Share token never logged — only `validatedUrl.hostname`. Every error re-thrown as safe user-visible message, never exposing stack traces. Mapped each security decision to its exact rule clause.
-- **Result B (rule OFF, glob-scoped)**: `security.mdc` explicitly noted as disabled and NOT cited. HTTPS-only check present (protocol allowlist), but NO private IP blocking at all. No `credentials: "omit"` or `redirect: "error"` on fetch. Size cap set to 10 MB (smaller) but only via `Content-Length` + blob size — no header-first early rejection pattern. Used `randomId()` (nanoid) instead of `crypto.getRandomValues()` directly. Logged full token in `console.info` ("token: ${shareToken}"). Self-reported gaps: no domain allowlist, token in logs, no timeout/AbortController.
-- **Conclusion**: Glob-scoping works correctly — rule activates when a `.ts` file is open and is absent otherwise. Rule ON enforced stricter private IP blocking, hardened fetch options, crypto primitive usage, and zero token leakage. Rule OFF self-identified the security.mdc gap, confirming the rule's specific value — non-trivial SSRF mitigations, fetch hardening, and log hygiene were dropped without it.
+- **Rule ON**: Full SSRF blocking (private IPs + localhost). `credentials: "omit"`, `redirect: "error"` on fetch. 50 MB size cap. `textContent` over innerHTML. Token never logged. Safe error messages.
+- **Rule OFF**: No private IP blocking. No hardened fetch options. Token logged in plaintext. No SSRF mitigations.
+- **Conclusion**: Glob-scoping confirmed. Rule drives SSRF blocking, fetch hardening, crypto primitives, and log hygiene.
