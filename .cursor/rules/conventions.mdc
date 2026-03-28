@@ -16,7 +16,7 @@ alwaysApply: false
 ## TypeScript
 
 - Strict mode — no `any`, no `@ts-ignore`
-- Prefer `type` over `interface` for simple types
+- Use `type` over `interface`
 - Import types: `import type { X } from "..."`
 
 ## Files
