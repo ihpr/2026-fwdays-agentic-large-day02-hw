@@ -1,63 +1,64 @@
 ---
-description: Security best practices — OWASP Top 10, secure coding, zero-trust AI output
+description: Excalidraw-focused security — file/library import, collab encryption, Firebase rules, canvas/SVG user content; generic OWASP marked ⚠️
 globs: "**/*.ts,**/*.tsx"
 alwaysApply: false
 ---
 
-# Security Best Practices
+# Security (Excalidraw monorepo)
 
-## OWASP Top 10
+Project-specific rules take priority. Generic OWASP advice is under **⚠️ Generic supplement** — apply only when clearly relevant.
 
-- **Injection**: Parameterize all queries; never interpolate user input into SQL/shell/templates
-- **Broken Auth**: Use established auth libraries; never roll custom hashing or session management
-- **Sensitive Data Exposure**: Never log secrets, tokens, or PII; never commit `.env` or API keys
-- **XSS**: Sanitize all user content before rendering; prefer `textContent` over `innerHTML`
-- **Insecure Deserialization**: Never use `eval()`, `Function()`, or `JSON.parse` on unvalidated input
-- **SSRF**: Allowlist URLs before fetching; reject private/internal IPs
-- **Security Misconfiguration**: Strict CSP headers; no verbose errors in production
+## `.excalidraw` / `.excalidrawlib` JSON import
 
-## Secure Coding
+- Never treat uploaded, pasted, or fetched JSON as trusted before validation. Pipeline: `JSON.parse` → **`isValidExcalidrawData`** / **`isValidLibrary`** (`packages/excalidraw/data/json.ts`) → **`loadSceneOrLibraryFromBlob`** / **`parseLibraryJSON`** (`packages/excalidraw/data/blob.ts`).
+- No alternate import paths that skip validation or call `restoreElements` / `restoreLibraryItems` on raw user objects.
+- Stricter validation (schema, element caps, file-id allowlists) belongs next to these guards — not in ad-hoc callers.
+- **`packages/excalidraw/data/restore.ts`** is protected — changes require the process in `do-not-touch.mdc`.
 
-- Validate/sanitize ALL external input at the boundary (API params, query strings, uploads, clipboard)
-- Use allowlists over denylists
-- Least privilege — minimal permissions, minimal API surface
-- Handle errors explicitly; never swallow exceptions; never expose stack traces to users
-- Use `crypto.getRandomValues()` or `crypto.randomUUID()` — never `Math.random()` for security values
-- Pin dependency versions; run `yarn audit` before adding packages
-- Avoid `dangerouslySetInnerHTML` unless sanitized with DOMPurify
+## Library fetch URL (SSRF / open redirect)
 
-```typescript
-// ❌ XSS
-element.innerHTML = userInput;
-// ✅ Safe
-element.textContent = userInput;
+- Remote libraries go through **`importLibraryFromURL`** (`packages/excalidraw/data/library.ts`): **`toValidURL`** → **`validateLibraryUrl`** (host/path allowlist).
+- New fetch targets must follow the same pattern — no blind `fetch(userSuppliedString)`.
 
-// ❌ Unsanitized React
-<div dangerouslySetInnerHTML={{ __html: userContent }} />
-// ✅ Sanitized
-<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userContent) }} />
-```
+## Collaboration encryption
 
-## Zero-Trust AI Output
+- **Room key** lives in the hash fragment — never send in query strings or log it.
+- **Socket payload**: `excalidraw-app/collab/Portal.tsx` encrypts via **`encryptData`** (`packages/excalidraw/data/encryption.ts`, AES-GCM, random IV). Keep decryption aligned with the same module.
+- **Share / export**: key in **hash** (`#json=...`) — not sent to server. Preserve this when changing URL shapes.
 
-All AI-generated code is **untrusted input**:
+## Firebase (Firestore + Storage)
 
-- Review every line — AI introduces subtle vulnerabilities (insecure defaults, missing validation, hardcoded secrets)
-- Never auto-merge AI PRs without human security review
-- Never trust AI-generated regex for security validation without testing edge cases
-- Never use AI-suggested secrets or credentials in real code
-- Run SAST/linters on all AI-generated code before committing
+- Rules: **`firebase-project/firestore.rules`** + **`firebase-project/storage.rules`**. Client: **`excalidraw-app/data/firebase.ts`**.
+- Security model relies on **opaque IDs**, **encryption**, and **no listing**. Any change that widens access, enables enumeration, or stores plaintext secrets needs security review.
+
+## Canvas / SVG user content
+
+- **Canvas**: untrusted scene data → drawn primitives/images. Keep bounds checks; reuse existing element/file validation.
+- **SVG export** (`packages/excalidraw/renderer/staticSvgScene.ts`): avoid executable SVG, unsafe `href`/`xlink:href`, unescaped HTML from elements. Use **`toValidURL`** / **`normalizeLink`**.
+- **DOM / React**: no `innerHTML` / unsanitized `dangerouslySetInnerHTML` for scene, library, or collaborator input.
+
+---
+
+## ⚠️ Generic supplement (OWASP-style)
+
+- **Injection**: parameterize queries; never interpolate user input into SQL/shell/templates.
+- **Auth**: use established libraries; no custom session/crypto.
+- **Secrets**: never log tokens, room keys, or share-link keys; never commit `.env` / API keys.
+- **XSS**: prefer `textContent` over `innerHTML`; sanitize before rendering HTML.
+- **Deserialization**: no `eval()` / `Function()` on untrusted data; always apply Excalidraw schema gates after `JSON.parse`.
+- **SSRF** (non-library): allowlist URLs for user-controlled `fetch` targets.
+- **Misconfiguration**: strict CSP where possible; suppress verbose errors in production.
+
+## Zero-trust AI output
+
+- Treat AI-generated patches as untrusted: review crypto, validation boundaries, Firebase rules, import paths.
+- Do not merge changes that bypass `isValidExcalidrawData` / `isValidLibrary` or weaken `validateLibraryUrl`.
 
 ## How to verify
 
-1. Run `yarn audit` — no high/critical vulnerabilities in dependencies
-2. Search for `innerHTML`, `eval`, `Function(`, `Math.random()` — none used in security-sensitive paths
-3. Confirm no secrets, tokens, or PII appear in logs (`console.log`, error messages)
-4. Verify all fetch calls targeting external URLs apply an allowlist check before execution
-5. Run a SAST linter (e.g. `yarn lint`) — no security rule violations flagged
-
-## A/B Test Results
-
-- **Rule ON**: Full SSRF blocking (private IPs + localhost). `credentials: "omit"`, `redirect: "error"` on fetch. 50 MB size cap. `textContent` over innerHTML. Token never logged. Safe error messages.
-- **Rule OFF**: No private IP blocking. No hardened fetch options. Token logged in plaintext. No SSRF mitigations.
-- **Conclusion**: Glob-scoping confirmed. Rule drives SSRF blocking, fetch hardening, crypto primitives, and log hygiene.
+1. `git diff --name-only` — if `firebase-project/*.rules` or `excalidraw-app/data/firebase.ts` changed, re-read rules for wider access or enumeration.
+2. Confirm new load flows call **`isValidExcalidrawData`** / **`isValidLibrary`** (or `loadSceneOrLibraryFromBlob` / `parseLibraryJSON`) — not raw restore.
+3. Confirm collab/share keys stay in **hash**, not query params or logs.
+4. `yarn audit` — no high/critical issues on dependency changes.
+5. `yarn lint` + typecheck — no new unsafe patterns.
+6. ⚠️ Search for `eval(`, `Function(`, risky `innerHTML` in new code paths.
