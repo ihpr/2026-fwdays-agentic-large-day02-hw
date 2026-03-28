@@ -48,6 +48,14 @@ All AI-generated code is **untrusted input**:
 - Never use AI-suggested secrets or credentials in real code
 - Run SAST/linters on all AI-generated code before committing
 
+## How to verify
+
+1. Run `yarn audit` — no high/critical vulnerabilities in dependencies
+2. Search for `innerHTML`, `eval`, `Function(`, `Math.random()` — none used in security-sensitive paths
+3. Confirm no secrets, tokens, or PII appear in logs (`console.log`, error messages)
+4. Verify all fetch calls targeting external URLs apply an allowlist check before execution
+5. Run a SAST linter (e.g. `yarn lint`) — no security rule violations flagged
+
 ## A/B Test Results
 
 - **Rule ON**: Full SSRF blocking (private IPs + localhost). `credentials: "omit"`, `redirect: "error"` on fetch. 50 MB size cap. `textContent` over innerHTML. Token never logged. Safe error messages.

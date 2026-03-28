@@ -23,3 +23,11 @@ alwaysApply: false
 
 - kebab-case for files: `element-utils.ts`
 - PascalCase for components: `LayerUI.tsx`
+
+## How to verify
+
+1. Run `yarn test:typecheck` — no TypeScript errors; strict mode violations absent
+2. Run `yarn fix` — no formatting or linting issues remain
+3. Search for `class ` components, `export default`, or `interface ` for simple types — none introduced
+4. Confirm new files follow naming conventions: kebab-case for utilities, PascalCase for components
+5. Verify new component props types follow the `{ComponentName}Props` naming pattern

@@ -48,3 +48,64 @@ Bad — vague, no context:
 - ISO dates (YYYY-MM-DD)
 - Unreleased section at top
 - Skip internal-only changes
+
+## How to verify
+
+1. Confirm `## [Unreleased]` section exists at the top of `CHANGELOG.md`
+2. Verify every new entry references a PR/issue number (e.g. `([#123])`)
+3. Check dates follow ISO format `YYYY-MM-DD`
+4. Confirm entries are written from the user's perspective, not implementation details
+5. Verify the compare URL at the bottom is updated to reflect the latest release tag
+
+## A/B TEST RESULTS
+─────────────────────────────
+Target: .cursor/rules/changelog.mdc   Type: Rule
+Prompt: "Write a changelog entry for a new feature that adds dark mode support"
+─────────────────────────────
+
+── A (ENABLED) ──
+```markdown
+## [Unreleased]
+
+### Added
+- Dark mode support, allowing the canvas and UI to adapt to the system or
+  user-selected color scheme ([#XXX](https://github.com/excalidraw/excalidraw/pull/XXX))
+
+Explanation: placed under [Unreleased] > Added, user-facing wording,
+PR link included as placeholder, no implementation details.
+```
+
+── B (DISABLED) ──
+```markdown
+## Unreleased
+
+### Features
+- Added dark mode support. The editor now respects the OS-level
+  `prefers-color-scheme` media query and can also be controlled via the new
+  `theme` prop (`"light"` | `"dark"` | `"system"`).
+  [#XXXX](https://github.com/excalidraw/excalidraw/pull/XXXX)
+
+Explanation: derived format from reading the actual CHANGELOG.md file,
+used ### Features (file convention) not ### Added (rule convention).
+```
+
+── Comparison ──
+| Aspect                        | A (Enabled)                          | B (Disabled)                        |
+|-------------------------------|--------------------------------------|-------------------------------------|
+| Followed rule?                | Yes                                  | N/A — derived from file directly    |
+| Section header                | `## [Unreleased]` (rule format)      | `## Unreleased` (no brackets)       |
+| Change type label             | `### Added` (rule vocabulary)        | `### Features` (file's own vocab)   |
+| Entry wording                 | User-facing, concise                 | More technical, exposes API details |
+| PR link format                | `([#XXX](url))`                      | `[#XXXX](url)` (no parens)          |
+| Implementation detail leakage | None (rule enforced)                 | Present (`theme` prop, media query) |
+| Response length               | ~130 words                           | ~280 words                          |
+
+── Verdict ──
+The rule meaningfully shapes the output. With it enabled, the agent
+correctly used the bracketed `## [Unreleased]` heading, the `### Added`
+change-type vocabulary, and kept the entry user-facing with no
+implementation details leaking through. Without the rule, the agent fell
+back to the actual file's looser conventions (`### Features`, no brackets,
+exposed API internals). The "How to verify" section appears to reinforce
+awareness — the agent in A explicitly called out what it omitted and why,
+matching the rule's quality checklist.

@@ -23,6 +23,14 @@ alwaysApply: false
 - No new npm packages without explicit approval
 - Check packages/utils/ before adding external helpers
 
+## How to verify
+
+1. Run `yarn test:typecheck` — no TypeScript errors; `AppState` used correctly
+2. Confirm no direct state mutations — all updates go through `actionManager.dispatch()`
+3. Search for imports of `redux`, `zustand`, `mobx`, `react-konva`, `fabric`, `pixi` — none present
+4. Verify no new packages were added to `package.json` without approval
+5. Check `packages/utils/` for any helper that can replace a proposed external dependency
+
 ## A/B Test: architecture.mdc
 
 - **Prompt**: "Create element coordinates component. Show what rules are used in this query."
