@@ -1,111 +1,107 @@
 ---
-description: Guidelines for maintaining changelogs based on Keep a Changelog format
+description: Guidelines for maintaining changelogs in the Excalidraw project
 globs: "**/CHANGELOG.md"
 alwaysApply: false
 ---
 
-# Keep a Changelog Standards
-
-Follow [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) + [SemVer](https://semver.org/).
+# Excalidraw Changelog Standards
 
 ## Change Types
 
-- **Added** — new features, endpoints, config, docs
-- **Changed** — existing functionality, non-breaking API changes, perf
-- **Deprecated** — features planned for removal
-- **Removed** — deleted features, endpoints, dependencies
-- **Fixed** — bug fixes, crash fixes, perf issues
-- **Security** — vulnerability patches, dependency updates
+Group entries under one of these sections:
+
+- **Features** — new features
+- **Fixes** — bug fixes
+- **Chore** — non-src changes (e.g. `package.json`, config)
+- **Refactor** — refactoring with no behavior change
+- **Breaking changes** — API or behavior changes requiring migration
 
 ## Structure
 
 ```markdown
-## [Unreleased]
+## Unreleased
 
-### Added
-- Multi-language support ([#123](https://github.com/user/repo/pull/123))
+### Features
 
-### Fixed
-- Memory leak in background worker ([#128](https://github.com/user/repo/issues/128))
+- Short description of what was added. [#123](https://github.com/excalidraw/excalidraw/pull/123)
 
-[Unreleased]: https://github.com/user/repo/compare/v1.2.0...HEAD
-[1.2.0]: https://github.com/user/repo/compare/v1.1.0...v1.2.0
+### Fixes
+
+- Short description of what was fixed. [#456](https://github.com/excalidraw/excalidraw/pull/456)
 ```
+
+- `## Unreleased` at the top — no brackets
+- Add new entries at the top of the correct section
+- PR link at the end of the entry, no enclosing parentheses: `[#123](url)`
+- Entries may include code blocks for API examples
 
 ## Entry Quality
 
-Good — specific, user-facing, with PR/issue link:
-`- Race condition in payment processing causing duplicate charges ([#128])`
+Good — specific, user-facing, with PR link:
+`- Fixed race condition in element rendering. [#128](https://github.com/excalidraw/excalidraw/pull/128)`
 
-Bad — vague, no context:
+Bad — vague, no link:
 `- Fixed bug`
 
 ## Rules
 
 - Update with every PR
-- Write from user's perspective
-- Include issue/PR numbers
-- ISO dates (YYYY-MM-DD)
-- Unreleased section at top
-- Skip internal-only changes
+- Place the latest change at the top of the correct section
+- Include PR link for every entry
+- Skip internal-only changes with no user impact
 
 ## How to verify
 
-1. Confirm `## [Unreleased]` section exists at the top of `CHANGELOG.md`
-2. Verify every new entry references a PR/issue number (e.g. `([#123])`)
-3. Check dates follow ISO format `YYYY-MM-DD`
-4. Confirm entries are written from the user's perspective, not implementation details
-5. Verify the compare URL at the bottom is updated to reflect the latest release tag
+1. Confirm `## Unreleased` (no brackets) exists at the top of `CHANGELOG.md`
+2. Verify section headers use `### Features`, `### Fixes`, `### Chore`, `### Refactor`, or `### Breaking changes`
+3. Verify every new entry has a PR link in the format `[#123](url)` (no enclosing parentheses)
+4. Confirm the new entry is placed at the top of its section
 
 ## A/B TEST RESULTS
 ─────────────────────────────
 Target: .cursor/rules/changelog.mdc   Type: Rule
-Prompt: "Write a changelog entry for a new feature that adds dark mode support"
+Prompt: "Write a changelog entry for a new feature that adds support for locking elements so they can't be moved or edited."
 ─────────────────────────────
 
 ── A (ENABLED) ──
 ```markdown
-## [Unreleased]
-
-### Added
-- Dark mode support, allowing the canvas and UI to adapt to the system or
-  user-selected color scheme ([#XXX](https://github.com/excalidraw/excalidraw/pull/XXX))
-
-Explanation: placed under [Unreleased] > Added, user-facing wording,
-PR link included as placeholder, no implementation details.
-```
-
-── B (DISABLED) ──
-```markdown
 ## Unreleased
 
 ### Features
-- Added dark mode support. The editor now respects the OS-level
-  `prefers-color-scheme` media query and can also be controlled via the new
-  `theme` prop (`"light"` | `"dark"` | `"system"`).
-  [#XXXX](https://github.com/excalidraw/excalidraw/pull/XXXX)
 
-Explanation: derived format from reading the actual CHANGELOG.md file,
-used ### Features (file convention) not ### Added (rule convention).
+- Added element locking: locked shapes and other elements stay fixed on the
+  canvas and can't be moved, resized, rotated, or edited until unlocked
+  (from the context menu or properties). [#123](https://github.com/excalidraw/excalidraw/pull/123)
 ```
 
-── Comparison ──
-| Aspect                        | A (Enabled)                          | B (Disabled)                        |
-|-------------------------------|--------------------------------------|-------------------------------------|
-| Followed rule?                | Yes                                  | N/A — derived from file directly    |
-| Section header                | `## [Unreleased]` (rule format)      | `## Unreleased` (no brackets)       |
-| Change type label             | `### Added` (rule vocabulary)        | `### Features` (file's own vocab)   |
-| Entry wording                 | User-facing, concise                 | More technical, exposes API details |
-| PR link format                | `([#XXX](url))`                      | `[#XXXX](url)` (no parens)          |
-| Implementation detail leakage | None (rule enforced)                 | Present (`theme` prop, media query) |
-| Response length               | ~130 words                           | ~280 words                          |
+Formatting choices: under ### Features (user-visible capability), one user-facing sentence, link format #123 with no enclosing parens.
+
+── B (DISABLED) ──
+```markdown
+## Excalidraw Library
+
+### Features
+
+- Added support for locking elements so they cannot be moved or edited.
+  [#XXXX](https://github.com/excalidraw/excalidraw/pull/XXXX)
+```
+
+Formatting choices: derived from file structure; placed under
+
+Excalidraw Library → ### Features; bullet and PR link style match
+existing entries.
+
+### Comparison
+
+| Aspect              | A (Enabled)                                   | B (Disabled)                                                    |
+|---------------------|-----------------------------------------------|-----------------------------------------------------------------|
+| Followed rule?      | Yes                                           | N/A — derived from file                                         |
+| Top-level heading   | `## Unreleased` (rule-specified)              | `## Excalidraw Library` (inferred)                              |
+| Section header      | `### Features` ✓                              | `### Features` ✓                                                |
+| PR link format      | `[#123](url)` — no parens ✓                   | `[#XXXX](url)` — no parens ✓                                    |
+| Entry wording       | User-facing, descriptive                      | Minimal but correct                                             |
+| Structural accuracy | Correct (new entries go at top of Unreleased) | Invented `## Excalidraw Library` heading not in the actual file |
+| Response length     | ~120 words                                    | ~140 words                                                      |
 
 ── Verdict ──
-The rule meaningfully shapes the output. With it enabled, the agent
-correctly used the bracketed `## [Unreleased]` heading, the `### Added`
-change-type vocabulary, and kept the entry user-facing with no
-implementation details leaking through. Without the rule, the agent fell
-back to the actual file's looser conventions (`### Features`, no brackets,
-exposed API internals). The "How to verify" section appears to reinforce
-awareness — the agent in A explicitly called out what it omitted and why,
-matching the rule's quality checklist.
+The rule meaningfully improves correctness on the most important structural detail: without it, the agent invented a ## Excalidraw Library section that doesn't exist in the actual file, placing the entry in the wrong location. With the rule, the agent correctly anchored the entry under ## Unreleased and placed it at the top of ### Features as required. Both got the PR link format right (no enclosing parentheses), confirming that aspect of the rule aligns with the file's convention. The rule is working as intended and is compatible with CHANGELOG.md.
