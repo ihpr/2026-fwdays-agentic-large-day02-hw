@@ -1,6 +1,7 @@
 ---
 description: Security best practices — OWASP Top 10, secure coding, zero-trust AI output
-alwaysApply: true
+globs: "**/*.ts,**/*.tsx"
+alwaysApply: false
 ---
 
 # Security Best Practices
@@ -54,6 +55,6 @@ AI-generated code (from Copilot, ChatGPT, Cursor, or any LLM) is **untrusted inp
 ## A/B Test: security.mdc
 
 - **Prompt**: "Write a TypeScript utility for Excalidraw that handles importing a drawing from a user-provided URL. The function should: 1) fetch the drawing JSON from the URL, 2) parse and deserialize the response, 3) generate a share token, 4) display a status message with the drawing title on the page, 5) log the operation. Show what rules are used in this query."
-- **Result A (rule ON)**: Listed `security.mdc` as primary rule. Blocked private IPs explicitly (10.x, 172.16-31.x, 192.168.x, localhost, ::1, .local). Used `crypto.getRandomValues()` directly. Used `textContent` for DOM display. Set `credentials: "omit"` and `redirect: "error"` on fetch. Enforced 50 MB response size limit. Logged only hostname — never logged the share token at all. Provided detailed OWASP-mapped security section.
-- **Result B (rule OFF)**: Did NOT list `security.mdc` as an active rule. Used hostname allowlist only — no private IP blocking. Used `generateEncryptionKey()` (existing wrapper) instead of explicit `crypto.getRandomValues()`. No `credentials: "omit"` or `redirect: "error"` on fetch. No response size limit. Logged the full URL and a truncated share token (first 4 chars). Self-identified missing rate limiting and size limits as gaps.
-- **Conclusion**: Rule ON produced stricter defense-in-depth: explicit private IP rejection, hardened fetch options, size limits, and zero token leakage in logs. Rule OFF still produced functional code but with measurable security gaps (no private IP blocking, full URL in logs, partial token in logs, no size cap, no fetch hardening).
+- **Result A (rule ON, glob-scoped)**: `security.mdc` listed as primary rule. Full SSRF blocking (regex patterns for all private IP ranges + localhost + .local + 0.0.0.0). `credentials: "omit"` and `redirect: "error"` on fetch. Explicit 50 MB size cap on both `Content-Length` header and blob. `textContent` used in raw DOM banner (never innerHTML). Share token never logged — only `validatedUrl.hostname`. Every error re-thrown as safe user-visible message, never exposing stack traces. Mapped each security decision to its exact rule clause.
+- **Result B (rule OFF, glob-scoped)**: `security.mdc` explicitly noted as disabled and NOT cited. HTTPS-only check present (protocol allowlist), but NO private IP blocking at all. No `credentials: "omit"` or `redirect: "error"` on fetch. Size cap set to 10 MB (smaller) but only via `Content-Length` + blob size — no header-first early rejection pattern. Used `randomId()` (nanoid) instead of `crypto.getRandomValues()` directly. Logged full token in `console.info` ("token: ${shareToken}"). Self-reported gaps: no domain allowlist, token in logs, no timeout/AbortController.
+- **Conclusion**: Glob-scoping works correctly — rule activates when a `.ts` file is open and is absent otherwise. Rule ON enforced stricter private IP blocking, hardened fetch options, crypto primitive usage, and zero token leakage. Rule OFF self-identified the security.mdc gap, confirming the rule's specific value — non-trivial SSRF mitigations, fetch hardening, and log hygiene were dropped without it.
